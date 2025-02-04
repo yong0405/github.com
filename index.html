@@ -28,124 +28,99 @@
     </style>
 </head>
 <body>
-    <h1>NAS 용역폴더 트리</h1>
-    <ul id="folderTree"></ul>
-    
+    <ul id="folderTree">
+        <li>
+            <span class="folder" onclick="toggleVisibility('용역')">📁 <span class="folder-name">31-용역</span></span>
+            <span class="controls" onclick="addFolder('용역')">[+]</span>
+            <span class="controls disabled">[이름 바꾸기]</span>
+            <span class="controls disabled">[-]</span>
+            <ul id="용역" data-depth="1">
+                <li>
+                    <span class="folder" onclick="toggleVisibility('Folder1')">📁 <span class="folder-name">Folder 1</span></span>
+                    <span class="controls" onclick="addFolder('Folder1')">[+]</span>
+                    <span class="controls" onclick="renameFolder(this)">[이름 바꾸기]</span>
+                    <span class="controls" onclick="removeFolder(this)">[-]</span>
+                    <ul id="Folder1" data-depth="2"></ul>
+                </li>
+                <li>
+                    <span class="folder" onclick="toggleVisibility('Folder2')">📁 <span class="folder-name">Folder 2</span></span>
+                    <span class="controls" onclick="addFolder('Folder2')">[+]</span>
+                    <span class="controls" onclick="renameFolder(this)">[이름 바꾸기]</span>
+                    <span class="controls" onclick="removeFolder(this)">[-]</span>
+                    <ul id="Folder2" data-depth="2">
+                        <li>
+                            <span class="folder" onclick="toggleVisibility('Subfolder1')">📁 <span class="folder-name">Subfolder 1</span></span>
+                            <span class="controls" onclick="addFolder('Subfolder1')">[+]</span>
+                            <span class="controls" onclick="renameFolder(this)">[이름 바꾸기]</span>
+                            <span class="controls" onclick="removeFolder(this)">[-]</span>
+                            <ul id="Subfolder1" data-depth="3"></ul>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+    </ul>
+
     <script>
-        const GITHUB_API_URL = 'https://api.github.com/repos/yong0405/github.com/contents/tree.json';  // GitHub 리포지토리 URL
-
-        const token = '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';  // 여기에 Personal Access Token을 입력하세요
-
-        // GitHub에서 폴더 트리 데이터를 가져오는 함수
-        async function fetchFolderTree() {
-            const response = await fetch(GITHUB_API_URL, {
-                headers: {
-                    'Authorization': `token ${token}`,
-                },
-            });
-
-            const data = await response.json();
-            if (data.content) {
-                return JSON.parse(atob(data.content));  // Base64로 인코딩된 데이터를 디코딩
-            }
-            return null;
-        }
-
-        // GitHub에 폴더 트리 데이터를 저장하는 함수
-        async function saveFolderTree(folderTree) {
-            const content = btoa(JSON.stringify(folderTree));  // 폴더 트리 데이터를 Base64로 인코딩
-
-            const response = await fetch(GITHUB_API_URL, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: '폴더 트리 업데이트',
-                    committer: {
-                        name: 'yong0405',  // 이름을 입력
-                        email: 'lutie89@gmail.com',  // 이메일을 입력
-                    },
-                    content: content,
-                }),
-            });
-
-            const data = await response.json();
-            return data;
-        }
-
-        // 폴더 트리 UI를 렌더링하는 함수
-        function renderFolderTree(folderTree) {
-            const folderTreeElement = document.getElementById('folderTree');
-            folderTreeElement.innerHTML = '';  // 기존 내용을 지웁니다.
-
-            folderTree.forEach(folder => {
-                const folderLi = document.createElement('li');
-                const folderSpan = document.createElement('span');
-                folderSpan.classList.add('folder');
-                folderSpan.innerHTML = `📁 <span class="folder-name">${folder.name}</span>`;
-                folderSpan.onclick = function() {
-                    toggleVisibility(folder.name);
-                };
-                folderLi.appendChild(folderSpan);
-                folderTreeElement.appendChild(folderLi);
-            });
-        }
-
-        // 폴더 트리 토글 함수
-        function toggleVisibility(folderName) {
-            const folder = document.querySelector(`.folder-name:contains(${folderName})`);
-            if (folder) {
-                const ulElement = folder.closest('li').querySelector('ul');
-                if (ulElement) {
-                    ulElement.classList.toggle('hidden');
-                }
+        function toggleVisibility(id) {
+            var element = document.getElementById(id);
+            if (element) {
+                element.classList.toggle('hidden');
+                saveTree();
             }
         }
 
-        // 페이지 로드 시 GitHub에서 폴더 트리 데이터 불러오기
-        window.onload = async function() {
-            try {
-                const folderTree = await fetchFolderTree();
-                if (folderTree) {
-                    renderFolderTree(folderTree);
-                } else {
-                    alert('폴더 트리를 불러오는 데 실패했습니다.');
-                }
-            } catch (error) {
-                console.error('폴더 트리 불러오기 오류:', error);
-                alert('폴더 트리를 불러오는 데 오류가 발생했습니다.');
+        function addFolder(parentId) {
+            var parent = document.getElementById(parentId);
+            var newFolderName = prompt("추가할 폴더 이름을 입력하세요:");
+            if (newFolderName) {
+                var newLi = document.createElement("li");
+                var uniqueId = 'folder_' + Date.now();
+                var depth = document.getElementById(parentId).dataset.depth ? parseInt(document.getElementById(parentId).dataset.depth) + 1 : 1;
+                var folderClass = depth >= 3 ? "" : "folder";
+                var folderIcon = depth >= 3 ? "📄 " : "📁 ";  // Change icon here for depth 3 and above
+                newLi.innerHTML = `<span class="${folderClass}" onclick="toggleVisibility('${uniqueId}')">${folderIcon}<span class="folder-name">${newFolderName}</span></span>
+                    <span class="controls" onclick="addFolder('${uniqueId}')">[+]</span>
+                    <span class="controls" onclick="renameFolder(this)" ${parentId === 'folderTree' ? 'class="disabled"' : ''}>[이름 바꾸기]</span>
+                    <span class="controls" onclick="removeFolder(this)" ${parentId === 'folderTree' ? 'class="disabled"' : ''}>[-]</span>
+                    <ul id="${uniqueId}" data-depth="${depth}"></ul>`;
+                parent.appendChild(newLi);
+                saveTree();
             }
+        }
+
+        function renameFolder(element) {
+            var folderNameElement = element.parentNode.querySelector(".folder-name");
+            var newName = prompt("새로운 폴더 이름을 입력하세요:", folderNameElement.innerText);
+            if (newName) {
+                folderNameElement.innerText = newName;
+                saveTree();
+            }
+        }
+
+        function removeFolder(element) {
+            if (confirm("정말 삭제 하시겠습니까?")) {
+                var li = element.parentNode;
+                li.parentNode.removeChild(li);
+                saveTree();
+            }
+        }
+
+        function saveTree() {
+            localStorage.setItem('folderTree', document.getElementById("folderTree").innerHTML);
+        }
+
+        function loadTree() {
+            var savedTree = localStorage.getItem('folderTree');
+            if (savedTree) {
+                document.getElementById("folderTree").innerHTML = savedTree;
+            }
+        }
+
+        window.onload = function() {
+            loadTree();
+            document.querySelectorAll(".hidden").forEach(el => el.classList.remove("hidden"));
         };
-
-        // 폴더 트리 추가, 수정, 삭제 기능을 위한 예시 코드
-        function addFolder() {
-            const folderName = prompt('추가할 폴더 이름을 입력하세요:');
-            if (folderName) {
-                const folderTree = [
-                    { name: folderName, children: [] }  // 새 폴더 트리 데이터 추가
-                ];
-                saveFolderTree(folderTree).then(() => {
-                    alert('폴더 트리가 저장되었습니다.');
-                });
-            }
-        }
-
-        // 폴더 이름 수정 예시
-        function renameFolder() {
-            const folderName = prompt('새로운 폴더 이름을 입력하세요:');
-            if (folderName) {
-                // 변경 로직 구현
-            }
-        }
-
-        // 폴더 삭제 예시
-        function removeFolder() {
-            if (confirm('폴더를 정말 삭제하시겠습니까?')) {
-                // 삭제 로직 구현
-            }
-        }
     </script>
 </body>
 </html>
