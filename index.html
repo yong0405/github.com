@@ -3,187 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NAS 개편안</title>
+    <title>NAS 용역폴더 트리</title>
     <style>
         ul {
             list-style-type: none;
             padding-left: 20px;
         }
-
         .folder {
             cursor: pointer;
             font-weight: bold;
         }
-
-        .folder::before {
-            content: "📂 ";
-        }
-
-        .file::before {
-            content: "📄 ";
-        }
-
         .hidden {
             display: none;
         }
-
-        li {
-            margin: 5px 0;
-            padding: 5px;
-            cursor: grab;
-            border: none;
-            background-color: transparent;
+        .controls {
+            margin-left: 10px;
+            cursor: pointer;
+            color: blue;
         }
-
-        .dragging {
-            opacity: 1;
-            border: 2px dashed #007bff;
-        }
-
-        .drag-over {
-            background-color: #e0f7fa;
+        .disabled {
+            color: gray;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
+    <ul id="folderTree">
+        <li>
+            <span class="folder" onclick="toggleVisibility('용역')">📁 <span class="folder-name">31-용역</span></span>
+            <span class="controls" onclick="addFolder('용역')">[+]</span>
+            <span class="controls disabled">[이름 바꾸기]</span>
+            <span class="controls disabled">[-]</span>
+            <ul id="용역" data-depth="1">
+                <li>
+                    <span class="folder" onclick="toggleVisibility('Folder1')">📁 <span class="folder-name">Folder 1</span></span>
+                    <span class="controls" onclick="addFolder('Folder1')">[+]</span>
+                    <span class="controls" onclick="renameFolder(this)">[이름 바꾸기]</span>
+                    <span class="controls" onclick="removeFolder(this)">[-]</span>
+                    <ul id="Folder1" data-depth="2"></ul>
+                </li>
+                <li>
+                    <span class="folder" onclick="toggleVisibility('Folder2')">📁 <span class="folder-name">Folder 2</span></span>
+                    <span class="controls" onclick="addFolder('Folder2')">[+]</span>
+                    <span class="controls" onclick="renameFolder(this)">[이름 바꾸기]</span>
+                    <span class="controls" onclick="removeFolder(this)">[-]</span>
+                    <ul id="Folder2" data-depth="2">
+                        <li>
+                            <span class="folder" onclick="toggleVisibility('Subfolder1')">📁 <span class="folder-name">Subfolder 1</span></span>
+                            <span class="controls" onclick="addFolder('Subfolder1')">[+]</span>
+                            <span class="controls" onclick="renameFolder(this)">[이름 바꾸기]</span>
+                            <span class="controls" onclick="removeFolder(this)">[-]</span>
+                            <ul id="Subfolder1" data-depth="3"></ul>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+    </ul>
 
-<h2>NAS 개편안</h2>
-<ul id="folderTree">
-    <li draggable="true">
-        <span class="folder" onclick="toggleFolder(this)">31-용역</span>
-        <button onclick="addFolderOrFile(this, true)">추가</button>
-        <ul>
-            <li draggable="true">
-                <span class="folder" onclick="toggleFolder(this)">00-WORK0000</span>
-                <button onclick="addFolderOrFile(this, false)">추가</button>
-                <button onclick="editName(this)">편집</button>
-                <button onclick="removeFolder(this)">삭제</button>
-                <ul>
-                    <li draggable="true"><span class="file">구조설계 및 검토</span>
-                        <button onclick="editName(this)">편집</button>
-                        <button onclick="removeFolder(this)">삭제</button>
-                    </li>
-                    <li draggable="true"><span class="file">내진성능평가</span>
-                        <button onclick="editName(this)">편집</button>
-                        <button onclick="removeFolder(this)">삭제</button>
-                    </li>
-                    <li draggable="true"><span class="file">성능기반설계</span>
-                        <button onclick="editName(this)">편집</button>
-                        <button onclick="removeFolder(this)">삭제</button>
-                    </li>
-                </ul>
-            </li>
-        </ul>
-    </li>
-</ul>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        document.querySelectorAll("ul").forEach(ul => ul.classList.remove("hidden"));
-    });
-
-    function toggleFolder(folder) {
-        const subList = folder.nextElementSibling.nextElementSibling;
-        if (subList && subList.tagName === "UL") {
-            subList.style.display = subList.style.display === "none" ? "block" : "none";
-        }
-    }
-
-    function addFolderOrFile(button, isFolder) {
-        const parentLi = button.parentElement;
-        let ul = parentLi.querySelector("ul");
-        if (!ul) {
-            ul = document.createElement("ul");
-            parentLi.appendChild(ul);
-        }
-        const newLi = document.createElement("li");
-        newLi.draggable = true;
-        newLi.addEventListener("dragstart", dragStart);
-        newLi.addEventListener("dragover", dragOver);
-        newLi.addEventListener("dragleave", dragLeave);
-        newLi.addEventListener("drop", drop);
-
-        const newItem = document.createElement("span");
-        if (isFolder) {
-            newItem.classList.add("folder");
-            newItem.textContent = "새 폴더";
-            newItem.onclick = function () { toggleFolder(newItem); };
-        } else {
-            newItem.classList.add("file");
-            newItem.textContent = "새 파일";
-        }
-        
-        const addBtn = document.createElement("button");
-        addBtn.textContent = "추가";
-        addBtn.onclick = function () { addFolderOrFile(addBtn, !isFolder); };
-        
-        const editBtn = document.createElement("button");
-        editBtn.textContent = "편집";
-        editBtn.onclick = function () { editName(editBtn); };
-
-        const removeBtn = document.createElement("button");
-        removeBtn.textContent = "삭제";
-        removeBtn.onclick = function () { removeFolder(removeBtn); };
-        
-
-        newLi.appendChild(newItem);
-        if (isFolder) {
-            newLi.appendChild(addBtn);
-        }
-        newLi.appendChild(editBtn);
-        newLi.appendChild(removeBtn);
-        ul.appendChild(newLi);
-    }
-
-    function removeFolder(button) {
-        const parentLi = button.parentElement;
-        if (parentLi.parentElement) {
-            parentLi.parentElement.removeChild(parentLi);
-        }
-    }
-
-    function editName(button) {
-        const nameSpan = button.parentElement.querySelector("span");
-        const newName = prompt("새 이름을 입력하세요:", nameSpan.textContent);
-        if (newName !== null && newName.trim() !== "") {
-            nameSpan.textContent = newName;
-        }
-    }
-
-    function dragStart(event) {
-        event.dataTransfer.setData("text/plain", event.target.id);
-        event.target.classList.add("dragging");
-    }
-
-    function dragOver(event) {
-        event.preventDefault();
-        event.target.classList.add("drag-over");
-    }
-
-    function dragLeave(event) {
-        event.target.classList.remove("drag-over");
-    }
-
-    function drop(event) {
-        event.preventDefault();
-        event.target.classList.remove("drag-over");
-        const draggedElement = document.querySelector(".dragging");
-        if (draggedElement) {
-            draggedElement.classList.remove("dragging");
-            const dropTarget = event.target.closest("li");
-            if (dropTarget && dropTarget.parentElement) {
-                dropTarget.parentElement.insertBefore(draggedElement, dropTarget);
+    <script>
+        function toggleVisibility(id) {
+            var element = document.getElementById(id);
+            if (element) {
+                element.classList.toggle('hidden');
+                saveTree();
             }
         }
-    }
 
-    document.querySelectorAll("li").forEach(item => {
-        item.addEventListener("dragstart", dragStart);
-        item.addEventListener("dragover", dragOver);
-        item.addEventListener("dragleave", dragLeave);
-        item.addEventListener("drop", drop);
-    });
-</script>
+        function addFolder(parentId) {
+            var parent = document.getElementById(parentId);
+            var newFolderName = prompt("추가할 폴더 이름을 입력하세요:");
+            if (newFolderName) {
+                var newLi = document.createElement("li");
+                var uniqueId = 'folder_' + Date.now();
+                var depth = document.getElementById(parentId).dataset.depth ? parseInt(document.getElementById(parentId).dataset.depth) + 1 : 1;
+                var folderClass = depth >= 3 ? "" : "folder";
+                var folderIcon = depth >= 3 ? "📄 " : "📁 ";  // Change icon here for depth 3 and above
+                newLi.innerHTML = `<span class="${folderClass}" onclick="toggleVisibility('${uniqueId}')">${folderIcon}<span class="folder-name">${newFolderName}</span></span>
+                    <span class="controls" onclick="addFolder('${uniqueId}')">[+]</span>
+                    <span class="controls" onclick="renameFolder(this)" ${parentId === 'folderTree' ? 'class="disabled"' : ''}>[이름 바꾸기]</span>
+                    <span class="controls" onclick="removeFolder(this)" ${parentId === 'folderTree' ? 'class="disabled"' : ''}>[-]</span>
+                    <ul id="${uniqueId}" data-depth="${depth}"></ul>`;
+                parent.appendChild(newLi);
+                saveTree();
+            }
+        }
 
+        function renameFolder(element) {
+            var folderNameElement = element.parentNode.querySelector(".folder-name");
+            var newName = prompt("새로운 폴더 이름을 입력하세요:", folderNameElement.innerText);
+            if (newName) {
+                folderNameElement.innerText = newName;
+                saveTree();
+            }
+        }
+
+        function removeFolder(element) {
+            if (confirm("정말 삭제 하시겠습니까?")) {
+                var li = element.parentNode;
+                li.parentNode.removeChild(li);
+                saveTree();
+            }
+        }
+
+        function saveTree() {
+            localStorage.setItem('folderTree', document.getElementById("folderTree").innerHTML);
+        }
+
+        function loadTree() {
+            var savedTree = localStorage.getItem('folderTree');
+            if (savedTree) {
+                document.getElementById("folderTree").innerHTML = savedTree;
+            }
+        }
+
+        window.onload = function() {
+            loadTree();
+            document.querySelectorAll(".hidden").forEach(el => el.classList.remove("hidden"));
+        };
+    </script>
 </body>
 </html>
