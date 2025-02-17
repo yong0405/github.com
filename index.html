@@ -28,39 +28,7 @@
     </style>
 </head>
 <body>
-    <ul id="folderTree">
-        <li>
-            <span class="folder" onclick="toggleVisibility('용역')">📁 <span class="folder-name">31-용역</span></span>
-            <span class="controls" onclick="addFolder('용역')">[+]</span>
-            <span class="controls disabled">[이름 바꾸기]</span>
-            <span class="controls disabled">[-]</span>
-            <ul id="용역" data-depth="1">
-                <li>
-                    <span class="folder" onclick="toggleVisibility('Folder1')">📁 <span class="folder-name">Folder 1</span></span>
-                    <span class="controls" onclick="addFolder('Folder1')">[+]</span>
-                    <span class="controls" onclick="renameFolder(this)">[이름 바꾸기]</span>
-                    <span class="controls" onclick="removeFolder(this)">[-]</span>
-                    <ul id="Folder1" data-depth="2"></ul>
-                </li>
-                <li>
-                    <span class="folder" onclick="toggleVisibility('Folder2')">📁 <span class="folder-name">Folder 2</span></span>
-                    <span class="controls" onclick="addFolder('Folder2')">[+]</span>
-                    <span class="controls" onclick="renameFolder(this)">[이름 바꾸기]</span>
-                    <span class="controls" onclick="removeFolder(this)">[-]</span>
-                    <ul id="Folder2" data-depth="2">
-                        <li>
-                            <span class="folder" onclick="toggleVisibility('Subfolder1')">📁 <span class="folder-name">Subfolder 1</span></span>
-                            <span class="controls" onclick="addFolder('Subfolder1')">[+]</span>
-                            <span class="controls" onclick="renameFolder(this)">[이름 바꾸기]</span>
-                            <span class="controls" onclick="removeFolder(this)">[-]</span>
-                            <ul id="Subfolder1" data-depth="3"></ul>
-                        </li>
-                    </ul>
-                </li>
-            </ul>
-        </li>
-    </ul>
-
+    <ul id="folderTree"></ul>
     <script>
         function toggleVisibility(id) {
             var element = document.getElementById(id);
@@ -80,9 +48,9 @@
                 var folderClass = depth >= 3 ? "" : "folder";
                 var folderIcon = depth >= 3 ? "📄 " : "📁 ";  // Change icon here for depth 3 and above
                 newLi.innerHTML = `<span class="${folderClass}" onclick="toggleVisibility('${uniqueId}')">${folderIcon}<span class="folder-name">${newFolderName}</span></span>
-                    <span class="controls" onclick="addFolder('${uniqueId}')">[+]</span>
-                    <span class="controls" onclick="renameFolder(this)" ${parentId === 'folderTree' ? 'class="disabled"' : ''}>[이름 바꾸기]</span>
-                    <span class="controls" onclick="removeFolder(this)" ${parentId === 'folderTree' ? 'class="disabled"' : ''}>[-]</span>
+                    <span class="controls" onclick="addFolder('${uniqueId}')">[추가]</span>
+                    <span class="controls" onclick="renameFolder(this)" ${parentId === 'folderTree' ? 'class="disabled"' : ''}>[편집]</span>
+                    <span class="controls" onclick="removeFolder(this)" ${parentId === 'folderTree' ? 'class="disabled"' : ''}>[삭제]</span>
                     <ul id="${uniqueId}" data-depth="${depth}"></ul>`;
                 parent.appendChild(newLi);
                 saveTree();
@@ -114,6 +82,15 @@
             var savedTree = localStorage.getItem('folderTree');
             if (savedTree) {
                 document.getElementById("folderTree").innerHTML = savedTree;
+            } else {
+                document.getElementById("folderTree").innerHTML = `
+                <li>
+                    <span class="folder" onclick="toggleVisibility('용역')">📁 <span class="folder-name">31-용역</span></span>
+                    <span class="controls" onclick="addFolder('용역')">[추가]</span>
+                    <span class="controls disabled">[편집</span>  <!-- Disable rename for the top folder -->
+                    <span class="controls disabled">[삭제]</span>  <!-- Disable delete for the top folder -->
+                    <ul id="용역" data-depth="1"></ul>
+                </li>`;
             }
         }
 
