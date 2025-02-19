@@ -132,8 +132,13 @@
             saveTreeToGitHub();
         }
 
-        window.onload = function() {
-            loadTreeFromGitHub();
+        window.onload = async function() {
+            await loadTreeFromGitHub();
+            
+            if (document.getElementById("folderTree").innerHTML.trim() === "") {
+                console.warn("🚨 GitHub 데이터 없음, 기본 폴더 트리 생성");
+                createDefaultTree();
+            }
         };
     </script>
 </body>
