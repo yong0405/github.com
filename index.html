@@ -14,76 +14,63 @@
 </head>
 <body>
     <ul id="folderTree"></ul>
-    
+
     <script>
-        const GITHUB_USERNAME = "yong0405";  // GitHub 사용자 이름
-        const REPO_NAME = "nas";  // GitHub 저장소 이름
-        const FILE_PATH = "folderTree.json";  // JSON 데이터 저장 경로
-        const GITHUB_TOKEN = "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";  // GitHub Personal Access Token
-
-        async function saveTreeToGitHub() {
-            const treeData = document.getElementById("folderTree").innerHTML; // 현재 폴더 트리 HTML 저장
-            const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`;
-
-            // 기존 파일의 SHA 값 가져오기 (없으면 null)
-            let sha = null;
-            const response = await fetch(apiUrl, {
-                headers: {
-                    Authorization: `token ${GITHUB_TOKEN}`,
-                    Accept: "application/vnd.github.v3+json",
-                },
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                sha = data.sha;
-            }
-
-            // JSON 데이터 Base64 인코딩
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify({ tree: treeData }, null, 2))));
-
-            // GitHub에 저장 요청
-            const updateResponse = await fetch(apiUrl, {
-                method: "PUT",
-                headers: {
-                    Authorization: `token ${GITHUB_TOKEN}`,
-                    Accept: "application/vnd.github.v3+json",
-                },
-                body: JSON.stringify({
-                    message: "자동 저장: 폴더 트리 업데이트",
-                    content: content,
-                    sha: sha,  // 기존 파일의 SHA 필요
-                }),
-            });
-
-            if (updateResponse.ok) {
-                console.log("GitHub에 저장 완료!");
-            } else {
-                console.error("저장 실패:", updateResponse.statusText);
-            }
-        }
-
-        function saveTree() {
-            saveTreeToGitHub();  // GitHub에 자동 저장
-        }
+        const GITHUB_USERNAME = "yong0405";  // ← 본인 GitHub 사용자명
+        const REPO_NAME = "nas";
+        const FILE_PATH = "folderTree.json";
+        const GITHUB_TOKEN = "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";  // ← GitHub에서 생성한 Personal Access Token
 
         async function loadTreeFromGitHub() {
             const apiUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main/${FILE_PATH}`;
-            const response = await fetch(apiUrl);
-
-            if (response.ok) {
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    console.warn("🚨 GitHub에서 데이터를 가져올 수 없음, 기본 트리 생성");
+                    createDefaultTree();
+                    return;
+                }
                 const data = await response.json();
-                document.getElementById("folderTree").innerHTML = data.tree;
-            } else {
-                // 기본 폴더 구조 생성
-                document.getElementById("folderTree").innerHTML = `
-                <li>
-                    <span class="folder" onclick="toggleVisibility('용역')">📁 <span class="folder-name">31-용역</span></span>
-                    <span class="controls" onclick="addFolder('용역')">[+]</span>
-                    <span class="controls disabled">[이름 바꾸기]</span>
-                    <span class="controls disabled">[-]</span>
-                    <ul id="용역" data-depth="1"></ul>
-                </li>`;
+                document.getElementById("folderTree").innerHTML = data.tree || "";
+            } catch (error) {
+                console.error("❌ GitHub API 요청 실패:", error);
+                createDefaultTree();
+            }
+        }
+
+        async function saveTreeToGitHub() {
+            const treeData = document.getElementById("folderTree").innerHTML;
+            const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`;
+
+            const getFileSha = async () => {
+                try {
+                    const response = await fetch(apiUrl, { headers: { Authorization: `token ${GITHUB_TOKEN}` } });
+                    if (response.ok) {
+                        const data = await response.json();
+                        return data.sha;
+                    }
+                } catch (error) {
+                    console.error("❌ SHA 가져오기 실패:", error);
+                }
+                return null;
+            };
+
+            const fileSha = await getFileSha();
+            const payload = {
+                message: "자동 저장",
+                content: btoa(unescape(encodeURIComponent(JSON.stringify({ tree: treeData })))),
+                sha: fileSha,
+            };
+
+            try {
+                await fetch(apiUrl, {
+                    method: "PUT",
+                    headers: { Authorization: `token ${GITHUB_TOKEN}`, "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+                console.log("✅ GitHub에 저장 완료");
+            } catch (error) {
+                console.error("❌ GitHub 저장 실패:", error);
             }
         }
 
@@ -91,7 +78,7 @@
             var element = document.getElementById(id);
             if (element) {
                 element.classList.toggle('hidden');
-                saveTree();
+                saveTreeToGitHub();
             }
         }
 
@@ -101,16 +88,18 @@
             if (newFolderName) {
                 var newLi = document.createElement("li");
                 var uniqueId = 'folder_' + Date.now();
-                var depth = document.getElementById(parentId).dataset.depth ? parseInt(document.getElementById(parentId).dataset.depth) + 1 : 1;
+                var depth = parent.dataset.depth ? parseInt(parent.dataset.depth) + 1 : 1;
                 var folderClass = depth >= 3 ? "" : "folder";
                 var folderIcon = depth >= 3 ? "📄 " : "📁 ";
+
                 newLi.innerHTML = `<span class="${folderClass}" onclick="toggleVisibility('${uniqueId}')">${folderIcon}<span class="folder-name">${newFolderName}</span></span>
                     <span class="controls" onclick="addFolder('${uniqueId}')">[+]</span>
                     <span class="controls" onclick="renameFolder(this)">[이름 바꾸기]</span>
                     <span class="controls" onclick="removeFolder(this)">[-]</span>
                     <ul id="${uniqueId}" data-depth="${depth}"></ul>`;
+
                 parent.appendChild(newLi);
-                saveTree();
+                saveTreeToGitHub();
             }
         }
 
@@ -119,7 +108,7 @@
             var newName = prompt("새로운 폴더 이름을 입력하세요:", folderNameElement.innerText);
             if (newName) {
                 folderNameElement.innerText = newName;
-                saveTree();
+                saveTreeToGitHub();
             }
         }
 
@@ -127,13 +116,24 @@
             if (confirm("정말 삭제 하시겠습니까?")) {
                 var li = element.parentNode;
                 li.parentNode.removeChild(li);
-                saveTree();
+                saveTreeToGitHub();
             }
+        }
+
+        function createDefaultTree() {
+            document.getElementById("folderTree").innerHTML = `
+                <li>
+                    <span class="folder" onclick="toggleVisibility('용역')">📁 <span class="folder-name">31-용역</span></span>
+                    <span class="controls" onclick="addFolder('용역')">[+]</span>
+                    <span class="controls disabled">[이름 바꾸기]</span>
+                    <span class="controls disabled">[-]</span>
+                    <ul id="용역" data-depth="1"></ul>
+                </li>`;
+            saveTreeToGitHub();
         }
 
         window.onload = function() {
             loadTreeFromGitHub();
-            document.querySelectorAll(".hidden").forEach(el => el.classList.remove("hidden"));
         };
     </script>
 </body>
