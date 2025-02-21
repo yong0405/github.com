@@ -5,95 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NAS 용역폴더 트리</title>
     <style>
-        ul {
-            list-style-type: none;
-            padding-left: 20px;
-        }
-        .folder {
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .hidden {
-            display: none;
-        }
-        .controls {
-            margin-left: 10px;
-            cursor: pointer;
-            color: blue;
-        }
-        .disabled {
-            color: gray;
-            cursor: not-allowed;
-        }
+        ul { list-style-type: none; padding-left: 20px; }
+        .folder { cursor: pointer; font-weight: bold; }
+        .hidden { display: none; }
+        .controls { margin-left: 10px; cursor: pointer; color: blue; }
+        .disabled { color: gray; cursor: not-allowed; }
     </style>
 </head>
 <body>
     <ul id="folderTree"></ul>
+
     <script>
-        const GITHUB_USERNAME = "yong0405";  // 사용자 GitHub 아이디
-        const REPO_NAME = "nas";            // 저장소 이름
-        const FILE_PATH = "folderTree.json"; // 저장할 JSON 파일 이름
-        const GITHUB_TOKEN = "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";  // 새로 생성한 GitHub Token 입력
-
-        async function fetchGitHubData() {
-            const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`;
-            
-            try {
-                const response = await fetch(url, {
-                    headers: {
-                        Authorization: `token ${GITHUB_TOKEN}`,
-                        Accept: "application/vnd.github.v3+json"
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`GitHub API 요청 실패: ${response.status} ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                return JSON.parse(atob(data.content)); // Base64 디코딩 후 JSON 파싱
-            } catch (error) {
-                console.error("❌ GitHub 데이터 불러오기 실패:", error);
-                return null;
-            }
-        }
-
-        async function saveToGitHub(data) {
-            const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`;
-            const content = btoa(JSON.stringify(data, null, 2)); // JSON을 Base64 인코딩
-
-            try {
-                const existingData = await fetchGitHubData();
-                const sha = existingData ? existingData.sha : undefined;
-
-                const response = await fetch(url, {
-                    method: "PUT",
-                    headers: {
-                        Authorization: `token ${GITHUB_TOKEN}`,
-                        Accept: "application/vnd.github.v3+json",
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        message: "Update folder tree",
-                        content: content,
-                        sha: sha
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`GitHub API 저장 실패: ${response.status} ${response.statusText}`);
-                }
-
-                console.log("✅ GitHub 데이터 저장 성공");
-            } catch (error) {
-                console.error("❌ GitHub 저장 실패:", error);
-            }
-        }
+        const GITHUB_TOKEN = "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";  // 🚨 GitHub Token 입력
+        const GITHUB_USERNAME = "yong0405";  // 🚨 내 GitHub 아이디
+        const REPO_NAME = "nas";  // 🚨 내 저장소 이름
+        const FILE_PATH = "folderTree.json";  // 🚨 저장할 JSON 파일 경로
+        const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`;
 
         function toggleVisibility(id) {
             var element = document.getElementById(id);
             if (element) {
                 element.classList.toggle('hidden');
+                saveTree();
             }
         }
 
@@ -106,13 +39,11 @@
                 var depth = parent.dataset.depth ? parseInt(parent.dataset.depth) + 1 : 1;
                 var folderClass = depth >= 3 ? "" : "folder";
                 var folderIcon = depth >= 3 ? "📄 " : "📁 ";
-
                 newLi.innerHTML = `<span class="${folderClass}" onclick="toggleVisibility('${uniqueId}')">${folderIcon}<span class="folder-name">${newFolderName}</span></span>
                     <span class="controls" onclick="addFolder('${uniqueId}')">[+]</span>
                     <span class="controls" onclick="renameFolder(this)">[이름 바꾸기]</span>
                     <span class="controls" onclick="removeFolder(this)">[-]</span>
                     <ul id="${uniqueId}" data-depth="${depth}"></ul>`;
-
                 parent.appendChild(newLi);
                 saveTree();
             }
@@ -135,22 +66,61 @@
             }
         }
 
-        function saveTree() {
-            const treeData = document.getElementById("folderTree").innerHTML;
-            saveToGitHub({ content: treeData });
+        async function saveTree() {
+            const folderTreeHTML = document.getElementById("folderTree").innerHTML;
+            const encodedContent = btoa(unescape(encodeURIComponent(folderTreeHTML)));
+
+            try {
+                const existingData = await fetchGitHubData();
+                const sha = existingData.sha;
+
+                await fetch(GITHUB_API_URL, {
+                    method: "PUT",
+                    headers: {
+                        Authorization: `token ${GITHUB_TOKEN}`,
+                        Accept: "application/vnd.github.v3+json",
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        message: "Update folder structure",
+                        content: encodedContent,
+                        sha: sha
+                    })
+                });
+
+                console.log("✅ GitHub 저장 완료!");
+            } catch (error) {
+                console.error("❌ GitHub 저장 실패:", error);
+            }
+        }
+
+        async function fetchGitHubData() {
+            const response = await fetch(GITHUB_API_URL, {
+                headers: {
+                    Authorization: `token ${GITHUB_TOKEN}`,
+                    Accept: "application/vnd.github.v3+json"
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`GitHub API 요청 실패: ${response.status}`);
+            }
+
+            return await response.json();
         }
 
         async function loadTree() {
-            const savedTree = await fetchGitHubData();
-            if (savedTree && savedTree.content) {
-                document.getElementById("folderTree").innerHTML = savedTree.content;
-            } else {
+            try {
+                const existingData = await fetchGitHubData();
+                const folderTreeHTML = decodeURIComponent(escape(atob(existingData.content)));
+                document.getElementById("folderTree").innerHTML = folderTreeHTML;
+                console.log("✅ GitHub 데이터 불러오기 완료!");
+            } catch (error) {
+                console.error("❌ GitHub 데이터 불러오기 실패:", error);
                 document.getElementById("folderTree").innerHTML = `
                 <li>
                     <span class="folder" onclick="toggleVisibility('용역')">📁 <span class="folder-name">31-용역</span></span>
                     <span class="controls" onclick="addFolder('용역')">[+]</span>
-                    <span class="controls disabled">[이름 바꾸기]</span>
-                    <span class="controls disabled">[-]</span>
                     <ul id="용역" data-depth="1"></ul>
                 </li>`;
             }
