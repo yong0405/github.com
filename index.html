@@ -16,13 +16,13 @@
     <ul id="folderTree"></ul>
 
     <script>
-        const GITHUB_TOKEN = "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";
+        // ⚠️ 토큰은 실제 사용 시 환경 변수로 대체하세요
+        const GITHUB_TOKEN = "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"; // 새로운 토큰으로 교체
         const GITHUB_USERNAME = "yong0405";
         const REPO_NAME = "nas";
         const FILE_PATH = "folderTree.json";
         const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`;
 
-        // 폴더 트리 데이터를 객체로 관리
         let folderData = {
             name: "31-용역",
             id: "용역",
@@ -120,15 +120,14 @@
 
         async function saveTree() {
             const encodedContent = btoa(unescape(encodeURIComponent(JSON.stringify(folderData, null, 2))));
-
             try {
                 const existingData = await fetchGitHubData();
                 const sha = existingData.sha;
 
-                await fetch(GITHUB_API_URL, {
+                const response = await fetch(GITHUB_API_URL, {
                     method: "PUT",
                     headers: {
-                        Authorization: `token ${GITHUB_TOKEN}`,
+                        Authorization: `Bearer ${GITHUB_TOKEN}`, // Bearer 사용
                         Accept: "application/vnd.github.v3+json",
                         "Content-Type": "application/json"
                     },
@@ -138,6 +137,8 @@
                         sha: sha
                     })
                 });
+
+                if (!response.ok) throw new Error(`GitHub 저장 실패: ${response.status}`);
                 console.log("✅ GitHub 저장 완료!");
             } catch (error) {
                 console.error("❌ GitHub 저장 실패:", error);
@@ -147,7 +148,7 @@
         async function fetchGitHubData() {
             const response = await fetch(GITHUB_API_URL, {
                 headers: {
-                    Authorization: `token ${GITHUB_TOKEN}`,
+                    Authorization: `Bearer ${GITHUB_TOKEN}`, // Bearer 사용
                     Accept: "application/vnd.github.v3+json"
                 }
             });
@@ -159,11 +160,12 @@
             try {
                 const existingData = await fetchGitHubData();
                 folderData = JSON.parse(decodeURIComponent(escape(atob(existingData.content))));
-                renderTree();
                 console.log("✅ GitHub 데이터 불러오기 완료!");
             } catch (error) {
                 console.error("❌ GitHub 데이터 불러오기 실패:", error);
-                renderTree();
+                // 기본 데이터로 초기화
+            } finally {
+                renderTree(); // 에러 여부와 관계없이 렌더링
             }
         }
 
