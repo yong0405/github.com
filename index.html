@@ -16,59 +16,110 @@
     <ul id="folderTree"></ul>
 
     <script>
-        const GITHUB_TOKEN = "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";  // 🚨 GitHub Token 입력
-        const GITHUB_USERNAME = "yong0405";  // 🚨 내 GitHub 아이디
-        const REPO_NAME = "nas";  // 🚨 내 저장소 이름
-        const FILE_PATH = "folderTree.json";  // 🚨 저장할 JSON 파일 경로
+        const GITHUB_TOKEN = "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";
+        const GITHUB_USERNAME = "yong0405";
+        const REPO_NAME = "nas";
+        const FILE_PATH = "folderTree.json";
         const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`;
+
+        // 폴더 트리 데이터를 객체로 관리
+        let folderData = {
+            name: "31-용역",
+            id: "용역",
+            depth: 0,
+            children: []
+        };
 
         function toggleVisibility(id) {
             var element = document.getElementById(id);
-            if (element) {
-                element.classList.toggle('hidden');
-                saveTree();
-            }
+            if (element) element.classList.toggle('hidden');
         }
 
         function addFolder(parentId) {
-            var parent = document.getElementById(parentId);
             var newFolderName = prompt("추가할 폴더 이름을 입력하세요:");
-            if (newFolderName) {
-                var newLi = document.createElement("li");
-                var uniqueId = 'folder_' + Date.now();
-                var depth = parent.dataset.depth ? parseInt(parent.dataset.depth) + 1 : 1;
-                var folderClass = depth >= 3 ? "" : "folder";
-                var folderIcon = depth >= 3 ? "📄 " : "📁 ";
-                newLi.innerHTML = `<span class="${folderClass}" onclick="toggleVisibility('${uniqueId}')">${folderIcon}<span class="folder-name">${newFolderName}</span></span>
-                    <span class="controls" onclick="addFolder('${uniqueId}')">[+]</span>
-                    <span class="controls" onclick="renameFolder(this)">[이름 바꾸기]</span>
-                    <span class="controls" onclick="removeFolder(this)">[-]</span>
-                    <ul id="${uniqueId}" data-depth="${depth}"></ul>`;
-                parent.appendChild(newLi);
-                saveTree();
-            }
+            if (!newFolderName) return;
+
+            const parentNode = findNode(folderData, parentId);
+            const depth = parentNode.depth + 1;
+            const uniqueId = 'folder_' + Date.now();
+            
+            const newFolder = {
+                name: newFolderName,
+                id: uniqueId,
+                depth: depth,
+                children: depth < 3 ? [] : null
+            };
+            
+            parentNode.children.push(newFolder);
+            renderTree();
+            saveTree();
         }
 
         function renameFolder(element) {
-            var folderNameElement = element.parentNode.querySelector(".folder-name");
-            var newName = prompt("새로운 폴더 이름을 입력하세요:", folderNameElement.innerText);
-            if (newName) {
-                folderNameElement.innerText = newName;
-                saveTree();
-            }
+            const folderId = element.parentNode.querySelector('ul').id;
+            const newName = prompt("새로운 폴더 이름을 입력하세요:");
+            if (!newName) return;
+
+            const node = findNode(folderData, folderId);
+            node.name = newName;
+            renderTree();
+            saveTree();
         }
 
         function removeFolder(element) {
-            if (confirm("정말 삭제 하시겠습니까?")) {
-                var li = element.parentNode;
-                li.parentNode.removeChild(li);
-                saveTree();
+            if (!confirm("정말 삭제 하시겠습니까?")) return;
+            
+            const folderId = element.parentNode.querySelector('ul')?.id;
+            removeNode(folderData, folderId);
+            renderTree();
+            saveTree();
+        }
+
+        function findNode(node, id) {
+            if (node.id === id) return node;
+            if (!node.children) return null;
+            for (let child of node.children) {
+                const found = findNode(child, id);
+                if (found) return found;
             }
+            return null;
+        }
+
+        function removeNode(node, id) {
+            if (!node.children) return;
+            node.children = node.children.filter(child => child.id !== id);
+            node.children.forEach(child => removeNode(child, id));
+        }
+
+        function renderTree() {
+            const treeElement = document.getElementById("folderTree");
+            treeElement.innerHTML = renderNode(folderData);
+        }
+
+        function renderNode(node) {
+            const isLeaf = !node.children || node.depth >= 3;
+            const icon = isLeaf ? "📄 " : "📁 ";
+            const folderClass = isLeaf ? "" : "folder";
+            
+            let html = `<li>
+                <span class="${folderClass}" onclick="toggleVisibility('${node.id}')">${icon}<span class="folder-name">${node.name}</span></span>
+                <span class="controls" onclick="addFolder('${node.id}')">[+]</span>
+                <span class="controls" onclick="renameFolder(this)">[이름 바꾸기]</span>
+                <span class="controls" onclick="removeFolder(this)">[-]</span>`;
+            
+            if (!isLeaf) {
+                html += `<ul id="${node.id}" data-depth="${node.depth + 1}">`;
+                for (let child of node.children) {
+                    html += renderNode(child);
+                }
+                html += "</ul>";
+            }
+            html += "</li>";
+            return html;
         }
 
         async function saveTree() {
-            const folderTreeHTML = document.getElementById("folderTree").innerHTML;
-            const encodedContent = btoa(unescape(encodeURIComponent(folderTreeHTML)));
+            const encodedContent = btoa(unescape(encodeURIComponent(JSON.stringify(folderData, null, 2))));
 
             try {
                 const existingData = await fetchGitHubData();
@@ -87,7 +138,6 @@
                         sha: sha
                     })
                 });
-
                 console.log("✅ GitHub 저장 완료!");
             } catch (error) {
                 console.error("❌ GitHub 저장 실패:", error);
@@ -101,28 +151,19 @@
                     Accept: "application/vnd.github.v3+json"
                 }
             });
-
-            if (!response.ok) {
-                throw new Error(`GitHub API 요청 실패: ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error(`GitHub API 요청 실패: ${response.status}`);
             return await response.json();
         }
 
         async function loadTree() {
             try {
                 const existingData = await fetchGitHubData();
-                const folderTreeHTML = decodeURIComponent(escape(atob(existingData.content)));
-                document.getElementById("folderTree").innerHTML = folderTreeHTML;
+                folderData = JSON.parse(decodeURIComponent(escape(atob(existingData.content))));
+                renderTree();
                 console.log("✅ GitHub 데이터 불러오기 완료!");
             } catch (error) {
                 console.error("❌ GitHub 데이터 불러오기 실패:", error);
-                document.getElementById("folderTree").innerHTML = `
-                <li>
-                    <span class="folder" onclick="toggleVisibility('용역')">📁 <span class="folder-name">31-용역</span></span>
-                    <span class="controls" onclick="addFolder('용역')">[+]</span>
-                    <ul id="용역" data-depth="1"></ul>
-                </li>`;
+                renderTree();
             }
         }
 
