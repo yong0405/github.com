@@ -17,7 +17,7 @@
 
     <script>
         // ⚠️ 토큰은 실제 사용 시 환경 변수로 대체하세요
-        const GITHUB_TOKEN = "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"; // 새로운 토큰으로 교체
+        const GITHUB_TOKEN = "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"; // 새로 생성한 GitHub Personal Access Token으로 교체 (repo 권한 포함)
         const GITHUB_USERNAME = "yong0405";
         const REPO_NAME = "nas";
         const FILE_PATH = "folderTree.json";
@@ -127,7 +127,7 @@
                 const response = await fetch(GITHUB_API_URL, {
                     method: "PUT",
                     headers: {
-                        Authorization: `Bearer ${GITHUB_TOKEN}`, // Bearer 사용
+                        Authorization: `token ${GITHUB_TOKEN}`, // "token" 사용
                         Accept: "application/vnd.github.v3+json",
                         "Content-Type": "application/json"
                     },
@@ -148,7 +148,7 @@
         async function fetchGitHubData() {
             const response = await fetch(GITHUB_API_URL, {
                 headers: {
-                    Authorization: `Bearer ${GITHUB_TOKEN}`, // Bearer 사용
+                    Authorization: `token ${GITHUB_TOKEN}`, // "token" 사용
                     Accept: "application/vnd.github.v3+json"
                 }
             });
