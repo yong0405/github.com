@@ -7,7 +7,14 @@
       "name": "ㄹ",
       "id": "folder_1740578069196",
       "depth": 1,
-      "children": []
+      "children": [
+        {
+          "name": "ㅁ",
+          "id": "folder_1740578073433",
+          "depth": 2,
+          "children": []
+        }
+      ]
     }
   ]
 }
