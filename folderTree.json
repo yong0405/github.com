@@ -12,7 +12,14 @@
           "name": "ㄹㄴㄴㄴ",
           "id": "folder_1740578043403",
           "depth": 2,
-          "children": []
+          "children": [
+            {
+              "name": "ㄴㄹㄹㄹㄹㄹ",
+              "id": "folder_1740578046711",
+              "depth": 3,
+              "children": null
+            }
+          ]
         }
       ]
     }
